@@ -35,17 +35,23 @@ for(let i=0;i<22;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.45+rand()*.7
 // Load the supplied low-poly forest map when low_poly_forest.glb is present.
 // If the asset is absent or fails to load, the lightweight procedural forest remains active.
 const forestLoader=new GLTFLoader();
-forestLoader.load('./low_poly_forest.glb',gltf=>{
- const forest=gltf.scene;
- forest.scale.setScalar(14);
- forest.position.set(0,0,-33);
- forest.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.DoubleSide}}});
- scene.add(forest);
- fallbackForest.visible=false;
- // The imported forest replaces the generated trees and stepping stones.
- obstacles.splice(0,100);
- say('Новый лес загружен. Найди хижину...',3);
-},undefined,error=>console.warn('low_poly_forest.glb не найден; используется встроенный лес.',error));
+fetch('./low_poly_forest.glb.gz')
+ .then(response=>{if(!response.ok)throw new Error('Файл леса ещё не загружен в проект');return response.arrayBuffer()})
+ .then(async compressed=>{
+  if(!('DecompressionStream' in window))throw new Error('Браузер не поддерживает распаковку gzip');
+  return await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+ })
+ .then(buffer=>forestLoader.parse(buffer,'./',gltf=>{
+  const forest=gltf.scene;
+  forest.scale.setScalar(14);
+  forest.position.set(0,0,-33);
+  forest.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material)o.material.side=THREE.DoubleSide}});
+  scene.add(forest);
+  fallbackForest.visible=false;
+  obstacles.splice(0,100);
+  say('Новый лес загружен. Найди хижину...',3);
+ },error=>console.warn('Не удалось прочитать 3D-лес; используется встроенный лес.',error)))
+ .catch(error=>console.warn('low_poly_forest.glb.gz не найден; используется встроенный лес.',error));
 
 // Cabin and warm, suspicious light.
 box(.25,3.2,4,cabinMat,-2.38,1.55,-62,true);

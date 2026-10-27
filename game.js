@@ -47,6 +47,8 @@ for(const x of [-.13,.13]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.04
 for(const s of [-1,1]){const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.9,3,5),dark);arm.position.set(s*.52,1.35,-.02);arm.rotation.z=s*-.13;monster.add(arm);const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.8,3,5),dark);leg.position.set(s*.2,.42,0);monster.add(leg)}
 monster.position.set(5,0,-34);
 const monsterLight=new THREE.PointLight(0xb90019,1.2,4);monsterLight.position.set(0,2.3,0);monster.add(monsterLight);
+// Fair monster AI: notice nearby players, chase at a capped speed, then search the last seen position.
+let monsterState='dormant',lastSeen=new THREE.Vector3(0,0,0),lostSightFor=0,searchTime=0;
 let running=false,ended=false,started=false,keys={},yaw=0,pitch=0,moveX=0,moveY=0,lookX=0,lastTouch=0,progress=0,messageTimer=0,audioCtx=null,heartbeatOsc=null,heartbeatGain=null,lastFootstep=0;
 const msg=document.querySelector('#message');
 function say(text,secs=3){msg.textContent=text;msg.classList.add('show');messageTimer=secs}
@@ -104,14 +106,39 @@ if(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift
 document.querySelector('#objective').textContent=progress>.83?'Доберись до хижины':'Найди выход из леса';
 if(progress>.24&&t>8){
  const distanceToPlayer=monster.position.distanceTo(camera.position);
- const speed=distanceToPlayer<12?1.45:distanceToPlayer<22?.72:.24;
- const target=new THREE.Vector3(camera.position.x,0,camera.position.z);
- monster.position.lerp(target,Math.min(1,dt*speed));
- monster.lookAt(camera.position.x,0,camera.position.z);
- monster.position.y=Math.sin(t*5)*.045;
+ const playerTarget=new THREE.Vector3(camera.position.x,0,camera.position.z);
+ // Detection radius gives the player time to react before the chase starts.
+ if(monsterState==='dormant'&&distanceToPlayer<17){monsterState='chase';lastSeen.copy(playerTarget);say('Он заметил тебя. БЕГИ!',2.5)}
+ if(monsterState==='chase'){
+  if(distanceToPlayer<19){lastSeen.copy(playerTarget);lostSightFor=0}
+  else lostSightFor+=dt;
+  if(lostSightFor>2.2){monsterState='search';searchTime=5;lostSightFor=0;say('Шаги стихли... Он ищет тебя.',2.5)}
+  else {
+   const delta=playerTarget.clone().sub(monster.position);delta.y=0;
+   const dist=delta.length();
+   if(dist>.08)monster.position.addScaledVector(delta.normalize(),Math.min(dist,2.65*dt));
+  }
+ }else if(monsterState==='search'){
+  searchTime-=dt;
+  const delta=lastSeen.clone().sub(monster.position);delta.y=0;
+  const dist=delta.length();
+  if(dist>.45)monster.position.addScaledVector(delta.normalize(),Math.min(dist,1.15*dt));
+  else if(searchTime<3.5){monsterState='dormant'}
+  if(searchTime<=0){monsterState='dormant'}
+  // If the player gets close again, the monster spots them immediately.
+  if(distanceToPlayer<12){monsterState='chase';lastSeen.copy(playerTarget);say('Он снова тебя увидел!',2)}
+ }else if(monsterState==='dormant'){
+  // It stays near its haunt instead of homing in on the player from across the map.
+  if(monster.position.distanceTo(new THREE.Vector3(5,0,-34))>1.2){
+   const home=new THREE.Vector3(5,0,-34),delta=home.sub(monster.position);delta.y=0;
+   monster.position.addScaledVector(delta.normalize(),Math.min(delta.length(),.7*dt));
+  }
+ }
+ monster.lookAt(monsterState==='search'?lastSeen.x:camera.position.x,0,monsterState==='search'?lastSeen.z:camera.position.z);
+ monster.position.y=Math.sin(t*3.5)*.035;
  if(heartbeatGain&&audioCtx){const intensity=THREE.MathUtils.clamp((18-distanceToPlayer)/18,0,1);heartbeatGain.gain.setTargetAtTime(intensity*.10,audioCtx.currentTime,.18);heartbeatOsc.frequency.setTargetAtTime(45+intensity*18,audioCtx.currentTime,.2)}
- if(progress<.5&&Math.random()<.003)say('Ты слышишь шаги позади...',2);
- if(distanceToPlayer<9&&Math.random()<.008)soundTone(62,.25,.04,'sawtooth');
+ if(monsterState==='chase'&&progress<.5&&Math.random()<.002)say('Ты слышишь шаги позади...',2);
+ if(monsterState==='chase'&&distanceToPlayer<9&&Math.random()<.008)soundTone(62,.25,.04,'sawtooth');
 }
 const distance=monster.position.distanceTo(camera.position);if(distance<1.65){soundTone(42,.8,.3,'sawtooth');endGame()}
 if(camera.position.z<-57&&Math.abs(camera.position.x)<4){say('Ты нашёл хижину. Но дверь медленно закрывается...',5);setTimeout(()=>{if(!ended){document.querySelector('#ending h1').textContent='ТЫ ВЫЖИЛ?';document.querySelector('#ending p').textContent='Это была только первая ночь.';document.querySelector('#ending').classList.remove('hidden');ended=true}},1500)}

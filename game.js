@@ -43,11 +43,32 @@ for(const x of [-.13,.13]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.04
 for(const s of [-1,1]){const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.9,3,5),dark);arm.position.set(s*.52,1.35,-.02);arm.rotation.z=s*-.13;monster.add(arm);const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.8,3,5),dark);leg.position.set(s*.2,.42,0);monster.add(leg)}
 monster.position.set(5,0,-34);
 const monsterLight=new THREE.PointLight(0xb90019,1.2,4);monsterLight.position.set(0,2.3,0);monster.add(monsterLight);
-let running=false,ended=false,started=false,keys={},yaw=0,pitch=0,moveX=0,moveY=0,lookX=0,lastTouch=0,progress=0,messageTimer=0;
+let running=false,ended=false,started=false,keys={},yaw=0,pitch=0,moveX=0,moveY=0,lookX=0,lastTouch=0,progress=0,messageTimer=0,audioCtx=null,heartbeatOsc=null,heartbeatGain=null,lastFootstep=0;
 const msg=document.querySelector('#message');
 function say(text,secs=3){msg.textContent=text;msg.classList.add('show');messageTimer=secs}
+function startAudio(){
+ if(audioCtx)return;
+ try{
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const master=audioCtx.createGain();master.gain.value=.24;master.connect(audioCtx.destination);
+  const drone=audioCtx.createOscillator(),droneGain=audioCtx.createGain(),filter=audioCtx.createBiquadFilter();
+  drone.type='sawtooth';drone.frequency.value=47;filter.type='lowpass';filter.frequency.value=110;droneGain.gain.value=.055;
+  drone.connect(filter);filter.connect(droneGain);droneGain.connect(master);drone.start();
+  heartbeatOsc=audioCtx.createOscillator();heartbeatGain=audioCtx.createGain();
+  heartbeatOsc.type='sine';heartbeatOsc.frequency.value=48;heartbeatGain.gain.value=0;
+  heartbeatOsc.connect(heartbeatGain);heartbeatGain.connect(master);heartbeatOsc.start();
+  window.__horrorAudio={master};
+ }catch(e){audioCtx=null}
+}
+function soundTone(freq=80,duration=.12,volume=.08,type='sine'){
+ if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+ o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);
+ o.frequency.exponentialRampToValueAtTime(Math.max(20,freq*.55),audioCtx.currentTime+duration);
+ g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);
+ o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration);
+}
 function tryLock(){if(!matchMedia('(pointer:coarse)').matches&&renderer.domElement.requestPointerLock)renderer.domElement.requestPointerLock()}
-document.querySelector('#start-btn').addEventListener('click',async()=>{started=true;document.querySelector('#start-screen').classList.add('hidden');try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch{}tryLock();say('Фонарик едва освещает тропу. Иди к хижине.',4)});
+document.querySelector('#start-btn').addEventListener('click',async()=>{started=true;document.querySelector('#start-screen').classList.add('hidden');startAudio();try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch{}tryLock();soundTone(110,.5,.12,'triangle');say('Фонарик едва освещает тропу. Иди к хижине.',4)});
 document.querySelector('#rotate-btn').addEventListener('click',()=>document.querySelector('#rotate-screen').style.display='none');
 document.querySelector('#retry').addEventListener('click',()=>location.reload());
 document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='e'&&started&&!ended)say('Дверь открыта... внутри кто-то дышит.',3)});
@@ -75,7 +96,7 @@ const nx=camera.position.x+dx,nz=camera.position.z+dz;
 if(!obstacles.some(o=>Math.abs(nx-o.x)<o.rx&&Math.abs(camera.position.z-o.z)<o.rz))camera.position.x=nx;
 if(!obstacles.some(o=>Math.abs(camera.position.x-o.x)<o.rx&&Math.abs(nz-o.z)<o.rz))camera.position.z=nz;
 camera.position.x=THREE.MathUtils.clamp(camera.position.x,-32,32);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-75,12);
-progress=Math.max(progress,Math.max(0,(7-camera.position.z)/69));
+progress=Math.max(progress,Math.max(0,(7-camera.position.z)/69));\nif(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}
 document.querySelector('#objective').textContent=progress>.83?'Доберись до хижины':'Найди выход из леса';
 if(progress>.24&&t>8){const target=new THREE.Vector3(camera.position.x+Math.sin(yaw)*3,0,camera.position.z-Math.cos(yaw)*3);monster.position.lerp(target,dt*.035);monster.lookAt(camera.position.x,0,camera.position.z);if(progress<.5&&Math.random()<.006)say('Ты слышишь шаги позади...',2)}
 const distance=monster.position.distanceTo(camera.position);if(distance<2.0){endGame()}

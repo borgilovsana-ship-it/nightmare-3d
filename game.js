@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/loaders/GLTFLoader.js';
 
 const root=document.querySelector('#game');
 const scene=new THREE.Scene();
@@ -23,12 +24,29 @@ const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness})
 const groundMat=mat(0x171b18),bark=mat(0x211d19),leaf=mat(0x101914),stone=mat(0x292b29),cabinMat=mat(0x28201c),windowMat=new THREE.MeshStandardMaterial({color:0xffa34c,emissive:0xff4a0a,emissiveIntensity:2});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
 const obstacles=[];
+const fallbackForest=new THREE.Group();scene.add(fallbackForest);
 function box(w,h,d,material,x,y,z,collide=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);if(collide)obstacles.push({x,z,rx:w/2+.4,rz:d/2+.4});return m}
-function tree(x,z,s=1){const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16*s,.3*s,3.5*s,6),bark);trunk.position.set(x,1.65*s,z);trunk.castShadow=true;scene.add(trunk);for(let i=0;i<3;i++){const crown=new THREE.Mesh(new THREE.ConeGeometry((1.25-i*.22)*s,(2.2-i*.18)*s,7),leaf);crown.position.set(x,(3.2+i*.7)*s,z);crown.castShadow=true;scene.add(crown)}obstacles.push({x,z,rx:.55*s,rz:.55*s})}
+function tree(x,z,s=1){const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16*s,.3*s,3.5*s,6),bark);trunk.position.set(x,1.65*s,z);trunk.castShadow=true;fallbackForest.add(trunk);for(let i=0;i<3;i++){const crown=new THREE.Mesh(new THREE.ConeGeometry((1.25-i*.22)*s,(2.2-i*.18)*s,7),leaf);crown.position.set(x,(3.2+i*.7)*s,z);crown.castShadow=true;fallbackForest.add(crown)}obstacles.push({x,z,rx:.55*s,rz:.55*s})}
 let seed=34821;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
 for(let i=0;i<100;i++){const side=i%2?1:-1;const x=side*(4+rand()*25);const z=12-rand()*75;tree(x,z,.7+rand()*.8)}
 // A broken path leads to the old cabin.
-for(let i=0;i<22;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.45+rand()*.7,.08,.4+rand()*.8),stone);m.position.set((rand()-.5)*3,-.01,5-i*3.3);m.rotation.y=rand()*2;scene.add(m)}
+for(let i=0;i<22;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.45+rand()*.7,.08,.4+rand()*.8),stone);m.position.set((rand()-.5)*3,-.01,5-i*3.3);m.rotation.y=rand()*2;fallbackForest.add(m)}
+
+// Load the supplied low-poly forest map when low_poly_forest.glb is present.
+// If the asset is absent or fails to load, the lightweight procedural forest remains active.
+const forestLoader=new GLTFLoader();
+forestLoader.load('./low_poly_forest.glb',gltf=>{
+ const forest=gltf.scene;
+ forest.scale.setScalar(14);
+ forest.position.set(0,0,-33);
+ forest.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.DoubleSide}}});
+ scene.add(forest);
+ fallbackForest.visible=false;
+ // The imported forest replaces the generated trees and stepping stones.
+ obstacles.splice(0,100);
+ say('Новый лес загружен. Найди хижину...',3);
+},undefined,error=>console.warn('low_poly_forest.glb не найден; используется встроенный лес.',error));
+
 // Cabin and warm, suspicious light.
 box(.25,3.2,4,cabinMat,-2.38,1.55,-62,true);
 box(.25,3.2,4,cabinMat,2.38,1.55,-62,true);

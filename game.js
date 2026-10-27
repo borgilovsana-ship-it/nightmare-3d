@@ -77,8 +77,7 @@ document.addEventListener('mousemove',e=>{if(document.pointerLockElement===rende
 renderer.domElement.addEventListener('click',()=>{if(started)tryLock()});
 function bindHold(id,key){const el=document.querySelector(id);el.addEventListener('pointerdown',e=>{keys[key]=true;el.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,()=>keys[key]=false))}
 bindHold('#run','shift');
-document.querySelector('#look-left').addEventListener('pointerdown',()=>keys.turnleft=true);document.querySelector('#look-left').addEventListener('pointerup',()=>keys.turnleft=false);
-document.querySelector('#look-right').addEventListener('pointerdown',()=>keys.turnright=true);document.querySelector('#look-right').addEventListener('pointerup',()=>keys.turnright=false);
+function bindTurn(id,key){const el=document.querySelector(id);el.addEventListener('pointerdown',e=>{keys[key]=true;el.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,()=>keys[key]=false))}bindTurn('#look-left','turnleft');bindTurn('#look-right','turnright');
 const area=document.querySelector('#stick-area'),stick=document.querySelector('#stick');let stickId=null;
 area.addEventListener('pointerdown',e=>{stickId=e.pointerId;area.setPointerCapture(stickId);moveStick(e)});
 area.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e)});
@@ -96,10 +95,21 @@ const nx=camera.position.x+dx,nz=camera.position.z+dz;
 if(!obstacles.some(o=>Math.abs(nx-o.x)<o.rx&&Math.abs(camera.position.z-o.z)<o.rz))camera.position.x=nx;
 if(!obstacles.some(o=>Math.abs(camera.position.x-o.x)<o.rx&&Math.abs(nz-o.z)<o.rz))camera.position.z=nz;
 camera.position.x=THREE.MathUtils.clamp(camera.position.x,-32,32);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-75,12);
-progress=Math.max(progress,Math.max(0,(7-camera.position.z)/69));\nif(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}
+progress=Math.max(progress,Math.max(0,(7-camera.position.z)/69));
+if(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}\nif(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}
 document.querySelector('#objective').textContent=progress>.83?'Доберись до хижины':'Найди выход из леса';
-if(progress>.24&&t>8){const target=new THREE.Vector3(camera.position.x+Math.sin(yaw)*3,0,camera.position.z-Math.cos(yaw)*3);monster.position.lerp(target,dt*.035);monster.lookAt(camera.position.x,0,camera.position.z);if(progress<.5&&Math.random()<.006)say('Ты слышишь шаги позади...',2)}
-const distance=monster.position.distanceTo(camera.position);if(distance<2.0){endGame()}
+if(progress>.24&&t>8){
+ const distanceToPlayer=monster.position.distanceTo(camera.position);
+ const speed=distanceToPlayer<12?1.45:distanceToPlayer<22?.72:.24;
+ const target=new THREE.Vector3(camera.position.x,0,camera.position.z);
+ monster.position.lerp(target,Math.min(1,dt*speed));
+ monster.lookAt(camera.position.x,0,camera.position.z);
+ monster.position.y=Math.sin(t*5)*.045;
+ if(heartbeatGain&&audioCtx){const intensity=THREE.MathUtils.clamp((18-distanceToPlayer)/18,0,1);heartbeatGain.gain.setTargetAtTime(intensity*.10,audioCtx.currentTime,.18);heartbeatOsc.frequency.setTargetAtTime(45+intensity*18,audioCtx.currentTime,.2)}
+ if(progress<.5&&Math.random()<.003)say('Ты слышишь шаги позади...',2);
+ if(distanceToPlayer<9&&Math.random()<.008)soundTone(62,.25,.04,'sawtooth');
+}
+const distance=monster.position.distanceTo(camera.position);if(distance<1.65){soundTone(42,.8,.3,'sawtooth');endGame()}
 if(camera.position.z<-57&&Math.abs(camera.position.x)<4){say('Ты нашёл хижину. Но дверь медленно закрывается...',5);setTimeout(()=>{if(!ended){document.querySelector('#ending h1').textContent='ТЫ ВЫЖИЛ?';document.querySelector('#ending p').textContent='Это была только первая ночь.';document.querySelector('#ending').classList.remove('hidden');ended=true}},1500)}
 if(messageTimer>0){messageTimer-=dt;if(messageTimer<=0)msg.classList.remove('show')}
 }

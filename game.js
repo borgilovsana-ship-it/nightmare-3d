@@ -116,7 +116,7 @@ if(progress>.24&&t>8){
   else {
    const delta=playerTarget.clone().sub(monster.position);delta.y=0;
    const dist=delta.length();
-   if(dist>.08)monster.position.addScaledVector(delta.normalize(),Math.min(dist,2.65*dt));
+   if(dist>.08)monster.position.addScaledVector(delta.normalize(),Math.min(dist,3.15*dt));
   }
  }else if(monsterState==='search'){
   searchTime-=dt;

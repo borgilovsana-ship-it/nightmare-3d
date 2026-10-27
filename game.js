@@ -30,9 +30,13 @@ for(let i=0;i<100;i++){const side=i%2?1:-1;const x=side*(4+rand()*25);const z=12
 // A broken path leads to the old cabin.
 for(let i=0;i<22;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.45+rand()*.7,.08,.4+rand()*.8),stone);m.position.set((rand()-.5)*3,-.01,5-i*3.3);m.rotation.y=rand()*2;scene.add(m)}
 // Cabin and warm, suspicious light.
-box(5,3.2,4,cabinMat,0,1.55,-62,true);
+box(.25,3.2,4,cabinMat,-2.38,1.55,-62,true);
+box(.25,3.2,4,cabinMat,2.38,1.55,-62,true);
+box(4.5,3.2,.22,cabinMat,0,1.55,-63.9,true);
+box(1.75,3.2,.22,cabinMat,-1.62,1.55,-60.05,true);
+box(1.75,3.2,.22,cabinMat,1.62,1.55,-60.05,true);
 box(5.4,.25,4.4,bark,0,3.25,-62,false);
-box(1.15,2.1,.18,mat(0x100e0d),0,.98,-59.88,true);
+box(1.1,2.1,.12,mat(0x100e0d),0,.98,-60.02,false);
 for(const x of [-1.55,1.55]){box(.65,.7,.12,windowMat,x,1.9,-59.82,false);const glow=new THREE.PointLight(0xff6b28,2,8);glow.position.set(x,2,-57.5);scene.add(glow)}
 // A distant silhouette that starts moving after the player advances.
 const monster=new THREE.Group();scene.add(monster);

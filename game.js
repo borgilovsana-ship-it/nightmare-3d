@@ -100,7 +100,7 @@ if(!obstacles.some(o=>Math.abs(nx-o.x)<o.rx&&Math.abs(camera.position.z-o.z)<o.r
 if(!obstacles.some(o=>Math.abs(camera.position.x-o.x)<o.rx&&Math.abs(nz-o.z)<o.rz))camera.position.z=nz;
 camera.position.x=THREE.MathUtils.clamp(camera.position.x,-32,32);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-75,12);
 progress=Math.max(progress,Math.max(0,(7-camera.position.z)/69));
-if(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}\nif(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}
+if(audioCtx&&(Math.abs(forward)+Math.abs(strafe)>.2)&&t-lastFootstep>(keys.shift?.29:.48)){lastFootstep=t;soundTone(55+rand()*25,.055,keys.shift?.055:.025,'triangle')}
 document.querySelector('#objective').textContent=progress>.83?'Доберись до хижины':'Найди выход из леса';
 if(progress>.24&&t>8){
  const distanceToPlayer=monster.position.distanceTo(camera.position);

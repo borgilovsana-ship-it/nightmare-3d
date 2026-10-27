@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#050607">
+<title>Nightmare 3D</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+  <div class="topline"><div class="brand">NIGHTMARE <span>3D</span></div><div id="objective">Найди выход из леса</div></div>
+  <div id="crosshair">+</div>
+  <div id="hint">WASD / стрелки — движение · мышь — осмотр · E — взаимодействие</div>
+  <div id="message">Ты проснулся в лесу. Найди свет у старой хижины...</div>
+  <div id="touch-controls">
+    <div id="stick-area"><div id="stick"></div></div>
+    <div class="touch-right"><button id="look-left" aria-label="Повернуть влево">↶</button><button id="look-right" aria-label="Повернуть вправо">↷</button><button id="run">БЕГ</button></div>
+  </div>
+</div>
+<div id="rotate-screen"><div class="rotate-icon">▱</div><h1>Поверни устройство</h1><p>Игра лучше работает в горизонтальном режиме</p><button id="rotate-btn">Я повернул экран</button></div>
+<div id="start-screen"><div class="eyebrow">НЕ ОБОРАЧИВАЙСЯ</div><h1>NIGHTMARE<br><span>3D</span></h1><p>Лес молчит. Но ты здесь не один.</p><button id="start-btn">НАЧАТЬ НОЧЬ</button><small>На телефоне играй горизонтально</small></div>
+<div id="ending" class="hidden"><h1>ТЕБЯ НАШЛИ</h1><p>В темноте что-то двинулось...</p><button id="retry">ПОПРОБОВАТЬ СНОВА</button></div>
+<script type="module" src="./game.js"></script>
+</body>
+</html>
